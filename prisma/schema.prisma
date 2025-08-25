@@ -1,0 +1,133 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Org {
+  id        String    @id @default(cuid())
+  name      String
+  projects  Project[]
+  users     UserOrg[]
+  playbooks Playbook[]
+  kbSources KbSource[]
+  createdAt DateTime  @default(now())
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String?
+  orgs      UserOrg[]
+  createdAt DateTime  @default(now())
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  COMMENTER
+  VIEWER
+}
+
+model UserOrg {
+  id        String  @id @default(cuid())
+  orgId     String
+  userId    String
+  role      Role    @default(EDITOR)
+  org       Org     @relation(fields: [orgId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+model Project {
+  id        String    @id @default(cuid())
+  orgId     String
+  name      String
+  org       Org       @relation(fields: [orgId], references: [id])
+  artifacts Artifact[]
+  runs      Run[]
+  createdAt DateTime  @default(now())
+}
+
+model Artifact {
+  id              String            @id @default(cuid())
+  projectId       String
+  type            String
+  name            String
+  latestVersionId String?
+  project         Project           @relation(fields: [projectId], references: [id])
+  versions        ArtifactVersion[]
+  createdAt       DateTime          @default(now())
+}
+
+model ArtifactVersion {
+  id          String   @id @default(cuid())
+  artifactId  String
+  number      Int
+  dataJson    Json
+  createdAt   DateTime @default(now())
+  artifact    Artifact @relation(fields: [artifactId], references: [id])
+}
+
+model Run {
+  id          String   @id @default(cuid())
+  projectId   String
+  status      String
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id])
+}
+
+model Playbook {
+  id        String   @id @default(cuid())
+  orgId     String
+  title     String
+  tags      String[]
+  bodyMd    String
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id])
+}
+
+model KbSource {
+  id        String   @id @default(cuid())
+  orgId     String
+  url       String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id])
+  chunks    KbChunk[]
+}
+
+model KbChunk {
+  id        String   @id @default(cuid())
+  sourceId  String
+  url       String
+  title     String?
+  text      String
+  createdAt DateTime @default(now())
+  source    KbSource @relation(fields: [sourceId], references: [id])
+}
+
+model StylePreset {
+  id         String   @id @default(cuid())
+  orgId      String?
+  name       String
+  slug       String   @unique
+  toneSys    String
+  paramsJson Json
+  createdAt  DateTime @default(now())
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  projectId     String
+  title         String?
+  model         String?
+  settingsJson  Json?
+  stylePresetId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+}
+
